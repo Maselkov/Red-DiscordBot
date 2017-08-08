@@ -2316,7 +2316,7 @@ class GuildWars2:
         async with self.session.get(url, headers=headers) as r:
             if r.status != 200 and r.status != 206:
                 if r.status == 400:
-                    raise APIBadRequest("No ongoing transactions")
+                    raise APIBadRequest("Bad request")
                 if r.status == 404:
                     raise APINotFound("Not found")
                 if r.status == 403:
