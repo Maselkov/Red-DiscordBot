@@ -282,7 +282,7 @@ class GuildWars2:
         inv_shared = list(filter(pre_filter, shared))
         del shared
 
-        # Bags and equipment are a little more complicated
+
         # Bags have multiple inventories for each character, so:
         # Step 5: Discard the empty and uninteresting
         inv_bags = list(filter(pre_filter,
@@ -1438,7 +1438,7 @@ class GuildWars2:
             default_channel = server.default_channel.id
             serverdoc = {"_id": server.id, "on": False,
                          "channel": default_channel, "language": "en",
-                         "daily" : {"on": False, "channel": None},
+                         "daily" : {"on": False, "channel": None, "autodelete": False, "last_message": None},
                          "news" : {"on": False, "channel": None}}
             await self.db.settings.insert_one(serverdoc)
         if ctx.invoked_subcommand is None or isinstance(ctx.invoked_subcommand, commands.Group):
@@ -1558,7 +1558,7 @@ class GuildWars2:
             default_channel = server.default_channel.id
             serverdoc = {"_id": server.id, "on": False,
                          "channel": default_channel, "language": "en",
-                         "daily" : {"on": False, "channel": None},
+                         "daily" : {"on": False, "channel": None, "autodelete": False, "last_message": None},
                          "news" : {"on": False, "channel": None}}
             await self.db.settings.insert_one(serverdoc)
         if ctx.invoked_subcommand is None:
@@ -1606,7 +1606,7 @@ class GuildWars2:
             default_channel = server.default_channel.id
             serverdoc = {"_id": server.id, "on": False,
                          "channel": default_channel, "language": "en",
-                         "daily" : {"on": False, "channel": None},
+                         "daily" : {"on": False, "channel": None, "autodelete": False, "last_message": None},
                          "news" : {"on": False, "channel": None}}
             await self.db.settings.insert_one(serverdoc)
         if ctx.invoked_subcommand is None:
@@ -1723,6 +1723,96 @@ class GuildWars2:
         except discord.HTTPException:
             await self.bot.say("Need permission to embed links")
 
+
+    @commands.cooldown(1, 15, BucketType.user)
+    @tp.command(pass_context=True, name="price")
+    async def tp_price(self, ctx, *, item: str):
+        """Checks price of an item"""
+        user = ctx.message.author
+        color = self.getColor(user)
+        choice = await self.itemname_to_id(item, user)
+        if not choice:
+            return
+        try:
+            commerce = 'commerce/prices/'
+            choiceid = str(choice["_id"])
+            endpoint = commerce + choiceid
+            results = await self.call_api(endpoint)
+        except APIKeyError as e:
+            await self.bot.say(e)
+            return
+        except APINotFound as e:
+            await self.bot.say("{0.mention}, This item isn't on the TP."
+                               "".format(user))
+            return
+        except APIError as e:
+            await self.bot.say("{0.mention}, API has responded with the following error: "
+                                "`{1}`".format(user, e))
+            return
+        buyprice = results["buys"]["unit_price"]
+        sellprice = results ["sells"]["unit_price"] 
+        itemname = choice["name"]
+        level = str(choice["level"])
+        rarity = choice["rarity"]
+        itemtype = self.gamedata["items"]["types"][choice["type"]].lower()
+        description = "A level {} {} {}".format(level, rarity.lower(), itemtype.lower())
+        if buyprice != 0:
+            buyprice = self.gold_to_coins(buyprice)
+        if sellprice != 0:
+            sellprice = self.gold_to_coins(sellprice)
+        if buyprice == 0:
+            buyprice = 'No buy orders'
+        if sellprice == 0:
+            sellprice = 'No sell orders'                
+        data = discord.Embed(title=itemname, description=description, colour=self.rarity_to_color(rarity))
+        if "icon" in choice:
+            data.set_thumbnail(url=choice["icon"])
+        data.add_field(name="Buy price", value=buyprice, inline=False)
+        data.add_field(name="Sell price", value=sellprice, inline=False)
+        data.set_footer(text=choice["chat_link"])
+        try:
+            await self.bot.say(embed=data)
+        except discord.HTTPException:
+            await self.bot.say("Issue embedding data into discord")
+
+    async def itemname_to_id(self, item, user):
+        item_sanitized = re.escape(item)
+        search = re.compile(item_sanitized + ".*", re.IGNORECASE)
+        cursor = self.db.items.find({"name": search})
+        number = await cursor.count()
+        if not number:
+            await self.bot.say("Your search gave me no results, sorry. Check for typos.")
+            return None
+        if number > 20:
+            await self.bot.say("Your search gave me {0} item results. Please be more specific".format(number))
+            return None
+        items = []
+        msg = "Which one of these interests you? Type its number```"
+        async for item in cursor:
+            items.append(item)
+        if number != 1:
+            for c, m in enumerate(items):
+                msg += "\n{}: {} ({})".format(c, m["name"], m["rarity"])
+            msg += "```"
+            message = await self.bot.say(msg)
+            answer = await self.bot.wait_for_message(timeout=120, author=user)
+            try:
+                num = int(answer.content)
+                choice = items[num]
+            except: 
+                await self.bot.edit_message(message, "That's not a number in the list")
+                return None
+            try:
+                await self.bot.delete_message(message)
+                await self.bot.delete_message(answer)
+            except:
+                pass
+        else:
+            message = await self.bot.say("Searching...")
+            choice = items[0]
+        return choice
+
+
     @commands.cooldown(1, 15, BucketType.user)
     @commands.command(pass_context=True)
     async def search(self, ctx, *, item):
@@ -1749,41 +1839,8 @@ class GuildWars2:
             await self.bot.say("{0.mention}, API has responded with the following error: "
                                "`{1}`".format(user, e))
             return
-        item_sanitized = re.escape(item)
-        search = re.compile(item_sanitized + ".*", re.IGNORECASE)
-        cursor = self.db.items.find({"name": search})
-        number = await cursor.count()
-        if not number:
-            await self.bot.say("Your search gave me no item results, sorry. Check for typos.")
-            return
-        if number > 20:
-            await self.bot.say("Your search gave me {0} item results. Please be more specific".format(number))
-            return
-        items = []
-        msg = "Which one of these interests you? Type it's number```"
-        async for item in cursor:
-            items.append(item)
-        if number != 1:
-            for c, m in enumerate(items):
-                msg += "\n{}: {} ({})".format(c, m["name"], m["rarity"])
-            msg += "```"
-            message = await self.bot.say(msg)
-            answer = await self.bot.wait_for_message(timeout=120, author=user)
-            try:
-                num = int(answer.content)
-                choice = items[num]
-            except:
-                await self.bot.edit_message(message, "That's not a number in the list")
-                return
-            try:
-                await self.bot.delete_message(answer)
-            except:
-                pass
-        else:
-            message = await self.bot.say("Searching far and wide...")
-            choice = items[0]
+        choice = await self.itemname_to_id(item, user)
         output = ""
-        await self.bot.edit_message(message, "Searching far and wide...")
         results = {"bank" : 0, "shared" : 0, "material" : 0, "characters" : {}}
         bankresults = [item["count"] for item in bank if item != None and item["id"] == choice["_id"]]
         results["bank"] = sum(bankresults)
@@ -1814,11 +1871,11 @@ class GuildWars2:
                 if value:
                     output += "{0}: Found {1}\n".format(char.upper(), value)
         if not output:
-            await self.bot.edit_message(message, "Sorry, not found on your account. "
+            await self.bot.say("Sorry, not found on your account. "
                                                  "Make sure you've selected the "
                                                  "correct item.")
         else:
-            await self.bot.edit_message(message, "```" + output + "```")
+            await self.bot.say("```" + output + "```")
 
     @commands.cooldown(1, 5, BucketType.user)
     @commands.command(pass_context=True)
@@ -2130,7 +2187,7 @@ class GuildWars2:
                     else:
                         print(
                             "A new build was found, but no channels to notify were found. Maybe error?")
-                    await self.rebuild_database(    )
+                    await self.rebuild_database()
                 await asyncio.sleep(60)
             except Exception as e:
                 print(
@@ -2161,6 +2218,7 @@ class GuildWars2:
         while self is self.bot.get_cog("GuildWars2"):
             try:
                 if self.check_day():
+                    await asyncio.sleep(300)
                     await self.send_daily_notifs()
                 await asyncio.sleep(60)
             except Exception as e:
@@ -2295,6 +2353,9 @@ class GuildWars2:
         except:
             color = discord.Embed.Empty
         return color
+
+    def rarity_to_color(self, rarity):
+        return int(self.gamedata["items"]["rarity_colors"][rarity], 0)
 
     async def get_channels(self):
         try:

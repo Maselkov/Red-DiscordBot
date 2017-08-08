@@ -46,6 +46,35 @@
         "name" : "Warrior"
       }
     },
+    "items" : {
+      "rarity_colors" : {
+        "Junk" : "0xAAA",
+        "Basic" : "0x000",
+        "Fine" : "0x62A4DA",
+        "Masterwork" : "0x1a9306",
+        "Rare" : "0xfcd00b",
+        "Exotic" : "0xffa405",
+        "Ascended" : "0xfb3e8d",
+        "Legendary" : "0x4C139D"
+      },
+      "types" : {
+        "Armor" : "Armor",
+        "Back" : "Backpiece",
+        "Bag" : "Bag",
+        "Consumable" : "Consumable",
+        "Container" : "Container",
+        "CraftingMaterial" : "Crafting material",
+        "Gathering" : "Gathering tool",
+        "Gizmo" : "Gizmo",
+        "MiniPet" : "Mini",
+        "Tool" : "Salvage kit",
+        "Trait" : "Trait guide",
+        "Trinket" : "Trinket",
+        "Trophy" : "Trophy",
+        "UpgradeComponent" : "Upgrade component",
+        "Weapon" : "Weapon"
+      }
+    },
     "bosses" : {
       "vale_guardian" : { "name" : "Vale Guardian", "order" : 0 },
       "spirit_woods" : { "name" : "Spirit Woods", "order" : 1 },
