@@ -1839,6 +1839,8 @@ class GuildWars2:
                                "`{1}`".format(user, e))
             return
         choice = await self.itemname_to_id(item, user)
+        if not choice:
+            return
         output = ""
         results = {"bank" : 0, "shared" : 0, "material" : 0, "characters" : {}}
         bankresults = [item["count"] for item in bank if item != None and item["id"] == choice["_id"]]
