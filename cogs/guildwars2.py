@@ -1549,7 +1549,7 @@ class GuildWars2:
             return self.gamedata["pact_supply"][day + modifier]
 
     @checks.admin_or_permissions(manage_server=True)
-    @commands.group(pass_context=True)
+    @commands.group(pass_context=True, no_pm=True)
     async def newsfeed(self, ctx):
         """Commands for setting up automatic guildwars2.com news feed"""
         server = ctx.message.server
