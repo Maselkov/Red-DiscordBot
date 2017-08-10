@@ -1808,7 +1808,6 @@ class GuildWars2:
             except:
                 pass
         else:
-            message = await self.bot.say("Searching...")
             choice = items[0]
         return choice
 
