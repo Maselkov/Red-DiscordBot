@@ -1435,9 +1435,8 @@ class GuildWars2:
         server = ctx.message.server
         serverdoc = await self.fetch_server(server)
         if not serverdoc:
-            default_channel = server.default_channel.id
             serverdoc = {"_id": server.id, "on": False,
-                         "channel": default_channel, "language": "en",
+                         "channel": None, "language": "en",
                          "daily" : {"on": False, "channel": None, "autodelete": False, "last_message": None},
                          "news" : {"on": False, "channel": None}}
             await self.db.settings.insert_one(serverdoc)
@@ -1447,12 +1446,9 @@ class GuildWars2:
 
 
     @daily_notifier.command(pass_context=True, name="channel")
-    async def daily_notifier_channel(self, ctx, channel: discord.Channel=None):
-        """Sets the channel to send the dailies to
-        If channel isn't specified, the server's default channel will be used"""
+    async def daily_notifier_channel(self, ctx, channel: discord.Channel):
+        """Sets the channel to send the dailies to"""
         server = ctx.message.server
-        if channel is None:
-            channel = ctx.message.server.default_channel
         if not server.get_member(self.bot.user.id
                                  ).permissions_in(channel).send_messages:
             await self.bot.say("I do not have permissions to send "
@@ -1555,9 +1551,8 @@ class GuildWars2:
         server = ctx.message.server
         serverdoc = await self.fetch_server(server)
         if not serverdoc:
-            default_channel = server.default_channel.id
             serverdoc = {"_id": server.id, "on": False,
-                         "channel": default_channel, "language": "en",
+                         "channel": None, "language": "en",
                          "daily" : {"on": False, "channel": None, "autodelete": False, "last_message": None},
                          "news" : {"on": False, "channel": None}}
             await self.db.settings.insert_one(serverdoc)
@@ -1565,12 +1560,9 @@ class GuildWars2:
             await self.bot.send_cmd_help(ctx)
 
     @newsfeed.command(pass_context=True, name="channel")
-    async def newsfeed_channel(self, ctx, channel: discord.Channel=None):
-        """Sets the channel to send the news to
-        If channel isn't specified, the server's default channel will be used"""
+    async def newsfeed_channel(self, ctx, channel: discord.Channel):
+        """Sets the channel to send the news to"""
         server = ctx.message.server
-        if channel is None:
-            channel = ctx.message.server.default_channel
         if not server.get_member(self.bot.user.id
                                  ).permissions_in(channel).send_messages:
             await self.bot.say("I do not have permissions to send "
@@ -1603,9 +1595,8 @@ class GuildWars2:
         server = ctx.message.server
         serverdoc = await self.fetch_server(server)
         if not serverdoc:
-            default_channel = server.default_channel.id
             serverdoc = {"_id": server.id, "on": False,
-                         "channel": default_channel, "language": "en",
+                         "channel": None, "language": "en",
                          "daily" : {"on": False, "channel": None, "autodelete": False, "last_message": None},
                          "news" : {"on": False, "channel": None}}
             await self.db.settings.insert_one(serverdoc)
@@ -1613,12 +1604,9 @@ class GuildWars2:
             await self.bot.send_cmd_help(ctx)
 
     @gamebuild.command(pass_context=True)
-    async def channel(self, ctx, channel: discord.Channel=None):
-        """Sets the channel to send the update announcement
-        If channel isn't specified, the server's default channel will be used"""
+    async def channel(self, ctx, channel: discord.Channel):
+        """Sets the channel to send the update announcement"""
         server = ctx.message.server
-        if channel is None:
-            channel = ctx.message.server.default_channel
         if not server.get_member(self.bot.user.id
                                  ).permissions_in(channel).send_messages:
             await self.bot.say("I do not have permissions to send "
