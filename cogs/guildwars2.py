@@ -61,7 +61,7 @@ class GuildWars2:
     def __unload(self):
         self.session.close()
         self.client.close()
-
+    
     @commands.group(pass_context=True)
     async def key(self, ctx):
         """Commands related to API keys"""
@@ -1905,19 +1905,23 @@ class GuildWars2:
         else:
             message = await self.bot.say("Searching far and wide...")
             choice = items[0]
-        data = self.skill_embed(choice)
+        data = await self.skill_embed(choice)
         try:
             await self.bot.edit_message(message, new_content=" ", embed=data)
         except discord.HTTPException:
             await self.bot.say("Need permission to embed links")
 
 
-    def skill_embed(self, skill):
+    async def skill_embed(self, skill):
         #Very inconsistent endpoint, playing it safe
         description = None
         if "description" in skill:
             description = skill["description"]
-        data = discord.Embed(title=skill["name"], description=description)
+        url = "https://wiki.guildwars2.com/wiki/" + skill["name"].replace(' ', '_')
+        async with self.session.head(url) as r:
+            if not r.status == 200:
+               url = None
+        data = discord.Embed(title=skill["name"], description=description, url=url)
         if "icon" in skill:
             data.set_thumbnail(url=skill["icon"])
         if "professions" in skill:
